@@ -1,6 +1,9 @@
 
 #include "Monitor.hpp"
 
+Monitor::Monitor() : buffer(256) {
+}
+
 void Monitor::write(Stream* target) {
     while(buffer.available()) {
         target->write(buffer.read());

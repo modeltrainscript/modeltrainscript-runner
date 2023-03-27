@@ -5,6 +5,7 @@
 
 class Monitor: public Print {
 public:
+    Monitor();
     void write(Stream* target);
 private:
     LoopbackStream buffer;
