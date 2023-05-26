@@ -79,6 +79,9 @@ void setup()
     setupZ21();
     gAutomationContext.sendZ21Packet = sendPacket;
 
+    // Setup GPIO
+    gAutomationContext.readGPIOPin = readGPIOPin;
+
     // Setup management api
     setupApiServer();
 }
@@ -261,6 +264,14 @@ void onCanDetector(uint16_t nld, uint16_t addr, uint8_t port, uint8_t type, uint
 /////////////////////////////////////////////////////////////////////
 // GPIO
 /////////////////////////////////////////////////////////////////////
+void readGPIOPin(u_int8_t pin) {
+    for (int i = 0; i < gNumMonitoredGPIOPins; ++i) {
+        if (gMonitorGPIOPins[i] == pin) {
+            gMonitorGPIOPinStates[i] = -1; 
+        }
+    }  
+}
+
 void loopGPIO() {
     for (int i = 0; i < gNumMonitoredGPIOPins; ++i) {
         int active = digitalRead(gMonitorGPIOPins[i]);
