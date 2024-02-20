@@ -3,7 +3,7 @@
 #include "Serializer.hpp"
 
 // Writing
-void Serializer::write(const Z21Config* config, const AutomationData* data, Writer* writer) {
+void Serializer::write(const Config* config, const AutomationData* data, Writer* writer) {
     writer->writeNext(1);
     writer->writeNext(DATA_VERSION);
 
@@ -12,7 +12,7 @@ void Serializer::write(const Z21Config* config, const AutomationData* data, Writ
     writeData(data, writer);
 }
 
-void Serializer::writeConfig(const Z21Config* config, Writer* writer) {    
+void Serializer::writeConfig(const Config* config, Writer* writer) {    
     writer->writeNext(config->ipAddress[0]);
     writer->writeNext(config->ipAddress[1]);
     writer->writeNext(config->ipAddress[2]);
@@ -60,8 +60,6 @@ void Serializer::writeSection(const Section* section, Writer* writer) {
 }
 
 void Serializer::writeAction(const Action* action, Writer* writer) {
-    
-
     writer->writeNext(static_cast<uint8_t>(action->type));
     writer->writeNext(0); // RESERVED
     writer->writeNext(action->input1 >> 8);
@@ -82,7 +80,7 @@ void Serializer::writeCondition(const Condition* condition, Writer* writer) {
 }
 
 // Reading
-void Serializer::read(Z21Config* config, AutomationData* data, Reader* reader) {    
+void Serializer::read(Config* config, AutomationData* data, Reader* reader) {    
     int value = reader->readNext();
     reader->readNext();
 
@@ -93,7 +91,7 @@ void Serializer::read(Z21Config* config, AutomationData* data, Reader* reader) {
     }
 }
 
-void Serializer::readConfig(Z21Config* config, Reader* reader) {
+void Serializer::readConfig(Config* config, Reader* reader) {
     config->ipAddress[0] = reader->readNext();
     config->ipAddress[1] = reader->readNext();
     config->ipAddress[2] = reader->readNext();
@@ -116,7 +114,7 @@ void Serializer::readScript(Script* script, Reader* reader) {
     reader->readNext(); // RESEVERED
 
     readCondition(&(script->event), reader);
-    
+
     for (int i=0; i < script->numSections; ++i) {        
         readSection(&(script->sections[i]), reader);
     }

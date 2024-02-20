@@ -4,7 +4,7 @@
 
 constexpr uint8_t RBUS_GROUP_SIZE = 10;
 
-enum class ConditionType: uint8_t { Accessory = 1, FeedbackRBus = 2, FeedbackCan = 3, GPIO = 4 };
+enum class ConditionType: uint8_t { Accessory = 1, Feedback = 2 };
 
 constexpr int8_t CONDITION_STATE_PENDING = -1;
 
@@ -26,14 +26,8 @@ public:
     uint8_t input;
     bool active;
 
-    void setup(SetupContext* context);
-    void requestCurrentState(AutomationContext* context);
-    void startEvaluation();
-    bool loop(bool* result);
-    void accessoryUpdated(unsigned int address, uint8_t accessoryState);
-    void onRBusDataChanged(uint8_t groupId, uint8_t* data, uint16_t length);
-    void onCanDetector(uint16_t nld, uint16_t addr, uint8_t port, uint8_t type, uint16_t value1, uint16_t value2);
-    void onGPIOPinChange(uint8_t pin, bool active);
+    bool evaluate(AutomationContext* context);
+
+    bool feedbackChanged(uint8_t address, uint8_t port, bool active);
 private:
-    int state = CONDITION_STATE_PENDING;
 };
