@@ -27,9 +27,9 @@ bool EcosClient::connected() {
     return socket.connected();
 }
 
-void EcosClient::connect(IPAddress address, uint16_t port) {
+bool EcosClient::connect(IPAddress address, uint16_t port) {
     if (socket.connected()) {
-        socket.stop();
+        disconnect();
     }
 
     monitor->print("connecting to ECoS: " );
@@ -42,14 +42,32 @@ void EcosClient::connect(IPAddress address, uint16_t port) {
         port
         )
     ) {
-        monitor->println("connection failure");        
+        monitor->println("connection failure");    
+        return false;    
     } else {
         monitor->println("connected to ECoS, registering views");
 
-        sendReply(translator.request(ECoS_Ids::ECoS, ECoS_Options::View));
+        if (!sendReply(translator.request(ECoS_Ids::ECoS, ECoS_Options::View))) {
+            return false;
+        }
 
-        sendReply(translator.queryObjects(ECoS_Ids::AccessoryManager, ECoS_Options::Address));
-        monitor->println("Register accessories");
+        if (!sendReply(translator.get(ECoS_Ids::ECoS, ECoS_Options::Status))) {
+            return false;
+        }
+
+        monitor->print("Status of command station: ");
+        monitor->println(currentReply.data[0].value);
+
+        monitor->println("Wait 5 sec for system initialisation");
+
+        delay(5000);
+
+        monitor->println("Resume initialisation");
+
+        monitor->println("Query accessories");
+        if (!sendReply(translator.queryObjects(ECoS_Ids::AccessoryManager, ECoS_Options::Address))) {
+            return false;
+        }        
 
         numberAccesories = 0;
         for(int i=0; i < currentReply.numData; ++i) {
@@ -58,14 +76,19 @@ void EcosClient::connect(IPAddress address, uint16_t port) {
             numberAccesories += 1;
         }
 
-        monitor->println("Register view for accessories");
+        monitor->print("Register view for accessories, total: ");
+        monitor->println(numberAccesories);
         for(int i=0; i < numberAccesories; ++i) {        
-            sendReply(translator.request(accessories[i].id, ECoS_Options::View));
+            if(!sendReply(translator.request(accessories[i].id, ECoS_Options::View))) {
+                return false;
+            }
         }
 
-        sendReply(translator.queryObjects(ECoS_Ids::FeedbackManager, ECoS_Options::Ports));
-        monitor->println("Register feedback modules");
-
+        monitor->println("Query feedback modules");
+        if(!sendReply(translator.queryObjects(ECoS_Ids::FeedbackManager, ECoS_Options::Ports))) {
+            return false;
+        }
+        
         numberFeedbackModules = 0;
         for(int i=0; i < currentReply.numData; ++i) {        
             feedbackModules[i].id = currentReply.data[i].id;
@@ -73,13 +96,21 @@ void EcosClient::connect(IPAddress address, uint16_t port) {
             numberFeedbackModules += 1;
         }
 
-        monitor->println("Register view for feedback modules");
-        for(int i=0; i < numberFeedbackModules; ++i) {        
-            sendReply(translator.request(feedbackModules[i].id, ECoS_Options::View));
+        monitor->print("Register view for feedback modules, total: ");
+        monitor->println(numberFeedbackModules);
+        for(int i=0; i < numberFeedbackModules; ++i) {      
+            if(!sendReply(translator.request(feedbackModules[i].id, ECoS_Options::View))) {
+                return false;
+            }
         }
 
         monitor->println("ECoS connection ready");
+        return true;
     }
+}
+
+void EcosClient::disconnect() {
+     socket.stop();
 }
 
 bool EcosClient::requestAccesory(uint16_t address) {
@@ -114,26 +145,32 @@ bool EcosClient::requestFeedback(uint16_t address, uint8_t port) {
     return false;
 }
 
-void EcosClient::sendReply(EcosRequest request) {
+bool EcosClient::sendReply(EcosRequest request) {
+    long sendTime = millis();
+
     socket.write(request.message().c_str());
 
-    bool replied = false;
-
-    while(socket.connected() && !replied) {
+    while(socket.connected()) {
         while(socket.connected() && !socket.available()) {
             delay(50);
+
+            if((millis() - sendTime) > 2000) {
+                monitor->println("timeout occured, disconnecting");
+
+                disconnect();
+                return false;
+            }
         }
 
         bool foundReply = readMessages();
-
         if(foundReply && currentReply.request.equals(request.message())) {
-            replied = true;
+            return true;
         }
-
-        if(!replied) {
             delay(50);
-        }
+            delay(50);
+        delay(50);
     }
+    return true;
 }
 
 bool EcosClient::readMessages() {

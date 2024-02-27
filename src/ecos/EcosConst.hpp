@@ -34,6 +34,7 @@ public:
     static constexpr const char* View = "view";
     static constexpr const char* Address = "addr";
     static constexpr const char* Ports = "ports";
+    static constexpr const char* Status = "status";
 };
 
 class ECoS_Values {

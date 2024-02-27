@@ -38,7 +38,8 @@ public:
 
     bool connected();
 
-    void connect(IPAddress address, uint16_t port);
+    bool connect(IPAddress address, uint16_t port);
+    void disconnect();
 
     bool requestAccesory(uint16_t address);
     void setAccessory(uint16_t address, bool on);
@@ -57,7 +58,7 @@ private:
     uint8_t numberAccesories;
     Accessory accessories[100];
 
-    void sendReply(EcosRequest request);
+    bool sendReply(EcosRequest request);
 
     String currentLine;
     EcosReply currentReply;
